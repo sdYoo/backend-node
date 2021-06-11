@@ -74,8 +74,8 @@ update_manifest:
     - cat $CD_MANIFEST_FILE
     - git commit -am "update image tag" && git push origin master
 
-finish-to-deploy:
-  stage: finish
+deploy-to-build:
+  stage: deploy
   environment:
     name: development server
   script:
