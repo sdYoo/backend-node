@@ -36,7 +36,7 @@ build-to-dev:
   script:
     - docker build -t $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0 .
     - docker rm -f backend-vue
-    - docker run -d -p 8099:80 --rm --name backend-vue $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0
+    - docker run -d -p 8077:80 --rm --name backend-vue $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0
 
 tag_latest_image:
   stage: deploy
