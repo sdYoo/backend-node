@@ -1,0 +1,82 @@
+image: docker
+
+services:
+  - name: docker:dind
+    command: [ "--insecure-registry=211.37.173.7:5000" ]
+
+stages:
+  - build
+  - deploy
+
+variables:
+  APP_NAME: backend-vue
+  CI_REGISTRY_IMAGE: backend/$APP_NAME
+  CI_REGISTRY_USER: $GIT_ID
+  CI_REGISTRY_PASSWORD: $GIT_PW
+  CI_REGISTRY_URL: 211.37.173.7:5000
+  CD_GIT_REPOSITORY: 211.37.173.7:8088/root/$CD_CHART_REPO.git
+  CD_CHART_REPO: backend-vue-chart
+  CD_MANIFEST_FILE: Chart.yaml
+  TAG: latest
+
+before_script:
+  - docker login $CI_REGISTRY_URL -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+
+init-build:
+  stage: build
+  environment:
+    name: development server
+  script:
+    - echo "Hello Init build!"
+
+build-to-dev:
+  stage: build
+  environment:
+    name: development server
+  script:
+    - docker build -t $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0 .
+    - docker rm -f backend-vue
+    - docker run -d -p 8099:80 --rm --name backend-vue $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0
+
+tag_latest_image:
+  stage: deploy
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - docker tag $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0 $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:latest
+    - docker image rm $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0
+    - docker push $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:latest
+
+update_manifest:
+  stage: deploy
+  variables:
+    GIT_STRATEGY: none
+  retry: 2
+  script:
+    # Add SSH key to root
+    - mkdir -p /root/.ssh
+    - echo "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - echo "$SSH_PRIVATE_KEY"
+    - ssh-keyscan -H 211.37.173.7 > /root/.ssh/known_hosts
+    - cat /root/.ssh/known_hosts
+    - chmod 600 /root/.ssh/id_rsa
+    # Git
+    - apk add --no-cache git
+    - git config --global user.name $APP_NAME
+    - git config --global user.email $APP_NAME"@gitlab.com"
+    - echo $CD_GIT_REPOSITORY
+    - git clone $CD_GIT_REPOSITORY
+    - cd $CD_CHART_REPO
+    # Helm
+    - >
+      docker run --rm -v ${PWD}:/workdir mikefarah/yq:3.2.1 yq write 
+      --inplace --verbose $CD_MANIFEST_FILE appVersion $TAG
+    - cat $CD_MANIFEST_FILE
+    - git commit -am "update image tag" && git push origin master
+
+deploy-to-build:
+  stage: deploy
+  environment:
+    name: development server
+  script:
+    - echo "Hello deploy!"
