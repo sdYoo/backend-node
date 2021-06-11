@@ -9,13 +9,13 @@ stages:
   - deploy
 
 variables:
-  APP_NAME: backend-vue
+  APP_NAME: backend-nodejs
   CI_REGISTRY_IMAGE: backend/$APP_NAME
   CI_REGISTRY_USER: $GIT_ID
   CI_REGISTRY_PASSWORD: $GIT_PW
   CI_REGISTRY_URL: 211.37.173.7:5000
   CD_GIT_REPOSITORY: 211.37.173.7:8088/root/$CD_CHART_REPO.git
-  CD_CHART_REPO: backend-vue-chart
+  CD_CHART_REPO: backend-nodejs-chart
   CD_MANIFEST_FILE: Chart.yaml
   TAG: latest
 
@@ -35,8 +35,8 @@ build-to-dev:
     name: development server
   script:
     - docker build -t $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0 .
-    - docker rm -f backend-vue
-    - docker run -d -p 8077:80 --rm --name backend-vue $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0
+    - docker rm -f backend-nodejs
+    - docker run -d -p 8077:80 --rm --name backend-nodejs $CI_REGISTRY_URL/$CI_REGISTRY_IMAGE:1.0
 
 tag_latest_image:
   stage: deploy
